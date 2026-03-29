@@ -4,6 +4,7 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import fastifyStatic from "@fastify/static";
+import fastifyMultipart from "@fastify/multipart";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { readFileSync } from "node:fs";
@@ -39,6 +40,11 @@ export function buildServer() {
 
   // Register plugins
   fastify.register(authPlugin);
+  fastify.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB max file size
+    },
+  });
 
   // Serve static files from public/ with SPA fallback
   fastify.register(fastifyStatic, {

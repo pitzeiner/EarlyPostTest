@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@fastify/jwt": "^9.0.0",
+    "@fastify/multipart": "^9.4.0",
     "@fastify/static": "^9.0.0",
     "@types/fastify-static": "^0.14.0",
     "bcrypt": "^5.1.0",
