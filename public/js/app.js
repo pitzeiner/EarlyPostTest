@@ -270,9 +270,139 @@
     });
   }
 
-  // ---- Tasks CRUD ----
+  // ---- Task Modal & CRUD ----
   let taskFilter = "all";
+  let taskModalFile = null;
 
+  function openTaskModal() {
+    document.getElementById("task-modal").classList.remove("hidden");
+    document.getElementById("task-title").focus();
+  }
+
+  function closeTaskModal() {
+    document.getElementById("task-modal").classList.add("hidden");
+    // Reset form
+    document.getElementById("task-modal-form").reset();
+    taskModalFile = null;
+    document.getElementById("task-file-preview").classList.add("hidden");
+  }
+
+  function initTaskView() {
+    const errorEl = document.getElementById("task-create-error");
+    const filter = document.getElementById("task-status-filter");
+
+    // New task button opens modal
+    document.getElementById("btn-new-task").addEventListener("click", openTaskModal);
+
+    // Cancel button closes modal
+    document.getElementById("task-modal-cancel").addEventListener("click", closeTaskModal);
+
+    // Click outside modal closes it
+    document.getElementById("task-modal").addEventListener("click", (e) => {
+      if (e.target.id === "task-modal") closeTaskModal();
+    });
+
+    // Dropzone handling
+    const dropzone = document.getElementById("task-dropzone");
+    const fileInput = document.getElementById("task-file-input");
+
+    dropzone.addEventListener("click", () => fileInput.click());
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleTaskFileSelect(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      if (fileInput.files.length > 0) {
+        handleTaskFileSelect(fileInput.files[0]);
+      }
+    });
+
+    // Remove file button
+    document.getElementById("task-file-remove").addEventListener("click", () => {
+      taskModalFile = null;
+      fileInput.value = "";
+      document.getElementById("task-file-preview").classList.add("hidden");
+    });
+
+    // Modal form submission
+    document.getElementById("task-modal-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("task-title").value.trim();
+      const description = document.getElementById("task-description").value.trim();
+      const dueDate = document.getElementById("task-due-date").value || null;
+
+      if (!title) return;
+
+      errorEl.classList.add("hidden");
+      try {
+        // Create task with optional attachment
+        const formData = new FormData();
+        formData.append("title", title);
+        if (description) formData.append("description", description);
+        if (dueDate) formData.append("dueDate", dueDate);
+        if (taskModalFile) formData.append("attachment", taskModalFile);
+
+        const h = api._headers();
+        delete h["Content-Type"]; // Let browser set multipart boundary
+
+        const res = await fetch(api._baseUrl + "/api/tasks", {
+          method: "POST",
+          headers: h,
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          const err = new Error(data?.message || res.statusText);
+          err.status = res.status;
+          throw err;
+        }
+
+        closeTaskModal();
+        await loadTasks();
+      } catch (err) {
+        errorEl.textContent = err.message || "Erstellen fehlgeschlagen";
+        errorEl.classList.remove("hidden");
+      }
+    });
+
+    filter.addEventListener("change", () => {
+      taskFilter = filter.value;
+      loadTasks();
+    });
+  }
+
+  function handleTaskFileSelect(file) {
+    // Accept any file type, max 10MB (enforced server-side)
+    taskModalFile = file;
+    const preview = document.getElementById("task-file-preview");
+    const fileName = document.getElementById("task-file-name");
+    fileName.textContent = file.name + " (" + formatFileSize(file.size) + ")";
+    preview.classList.remove("hidden");
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  // ---- Task List Rendering ----
   async function loadTasks() {
     const list = document.getElementById("task-list");
     const empty = document.getElementById("task-empty");
@@ -384,34 +514,6 @@
     } catch {
       /* silently fail */
     }
-  }
-
-  function initTaskView() {
-    const form = document.getElementById("task-create-form");
-    const errorEl = document.getElementById("task-create-error");
-    const filter = document.getElementById("task-status-filter");
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = document.getElementById("task-create-title");
-      const title = input.value.trim();
-      if (!title) return;
-
-      errorEl.classList.add("hidden");
-      try {
-        await api.post("/api/tasks", { title });
-        input.value = "";
-        await loadTasks();
-      } catch (err) {
-        errorEl.textContent = err.message || "Erstellen fehlgeschlagen";
-        errorEl.classList.remove("hidden");
-      }
-    });
-
-    filter.addEventListener("change", () => {
-      taskFilter = filter.value;
-      loadTasks();
-    });
   }
 
   // ---- Information CRUD ----

@@ -113,12 +113,48 @@
       <div class="view-container">
         <h2>Aufgaben</h2>
 
-        <!-- Inline create -->
-        <form id="task-create-form" class="inline-create-form">
-          <input type="text" id="task-create-title" placeholder="Neue Aufgabe…" maxlength="200" required />
-          <button type="submit" class="btn btn-primary">Erstellen</button>
-        </form>
+        <!-- Create button (opens modal) -->
+        <button id="btn-new-task" class="btn btn-primary" style="margin-bottom: 1rem;">Neue Aufgabe</button>
         <div id="task-create-error" class="error-msg hidden"></div>
+
+        <!-- Task Create Modal -->
+        <div id="task-modal" class="modal-overlay hidden">
+          <div class="modal-box modal-wide">
+            <h3>Aufgabe erstellen</h3>
+            <form id="task-modal-form">
+              <label>
+                Titel
+                <input type="text" id="task-title" name="title" maxlength="200" required placeholder="Aufgabentitel" />
+              </label>
+              <label>
+                Beschreibung
+                <textarea id="task-description" name="description" rows="3" maxlength="5000" placeholder="Optionale Beschreibung"></textarea>
+              </label>
+              <label>
+                Fälligkeit
+                <input type="date" id="task-due-date" name="dueDate" />
+              </label>
+              <label>
+                Anhang
+                <div id="task-dropzone" class="dropzone">
+                  <div class="dropzone-text">
+                    <span class="dropzone-icon">📎</span>
+                    <span>Datei hierher ziehen oder klicken zum Auswählen</span>
+                  </div>
+                  <input type="file" id="task-file-input" class="dropzone-input" />
+                </div>
+                <div id="task-file-preview" class="file-preview hidden">
+                  <span id="task-file-name"></span>
+                  <button type="button" id="task-file-remove" class="btn btn-sm btn-danger">Entfernen</button>
+                </div>
+              </label>
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Erstellen</button>
+                <button type="button" id="task-modal-cancel" class="btn btn-sm">Abbrechen</button>
+              </div>
+            </form>
+          </div>
+        </div>
 
         <!-- Status filter -->
         <div class="filter-bar">

@@ -74,7 +74,7 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // POST /api/tasks — create a task
+  // POST /api/tasks — create a task (with optional attachment via multipart/form-data)
   fastify.post<{ Body: CreateTaskBody }>(
     "/",
     {
@@ -84,16 +84,61 @@ export default async function taskRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const user = request.user as { id: number };
-      const { title, description, status, assignedTo, dueDate } = request.body;
+
+      // Handle multipart form data for file uploads
+      let title = "";
+      let description: string | undefined;
+      let status: "open" | "done" = "open";
+      let assignedTo: number | undefined;
+      let dueDate: string | undefined;
+      let attachmentFile: unknown = null;
+
+      const contentType = request.headers["content-type"] || "";
+      
+      if (contentType.includes("multipart/form-data")) {
+        // Parse multipart form data
+        const parts = request.parts() as AsyncGenerator<{ fieldname: string; value: unknown }>;
+        for await (const part of parts) {
+          if (part.fieldname === "title" && typeof part.value === "string") {
+            title = part.value;
+          } else if (part.fieldname === "description" && typeof part.value === "string") {
+            description = part.value || undefined;
+          } else if (part.fieldname === "status" && typeof part.value === "string") {
+            status = part.value as "open" | "done";
+          } else if (part.fieldname === "assignedTo" && typeof part.value === "string") {
+            assignedTo = parseInt(part.value, 10);
+          } else if (part.fieldname === "dueDate" && typeof part.value === "string") {
+            dueDate = part.value || undefined;
+          } else if (part.fieldname === "attachment") {
+            attachmentFile = part;
+          }
+        }
+      } else {
+        // Regular JSON request
+        const body = request.body as CreateTaskBody;
+        title = body.title;
+        description = body.description;
+        status = body.status ?? "open";
+        assignedTo = body.assignedTo;
+        dueDate = body.dueDate;
+      }
+
+      if (!title) {
+        return reply.code(400).send({
+          error: "Bad Request",
+          message: "Title is required",
+        });
+      }
 
       const now = new Date().toISOString();
 
+      // Insert task first
       const inserted = await db
         .insert(tasks)
         .values({
           title,
           description: description ?? null,
-          status: status ?? "open",
+          status: status,
           assignedTo: assignedTo ?? null,
           createdBy: user.id,
           dueDate: dueDate ?? null,
@@ -102,6 +147,58 @@ export default async function taskRoutes(fastify: FastifyInstance) {
         })
         .returning()
         .get();
+
+      // Handle file attachment if present
+      if (attachmentFile && typeof attachmentFile === "object" && "filename" in (attachmentFile as { filename?: unknown })) {
+        const fileData = attachmentFile as { filename: string; mimetype?: string; file?: AsyncIterable<Buffer> };
+        try {
+          const uuid = randomUUID();
+          const ext = fileData.filename.split(".").pop() || "";
+          const filename = ext ? `${uuid}.${ext}` : uuid;
+          const uploadDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "data", "uploads");
+          
+          await mkdir(uploadDir, { recursive: true });
+          
+          const filepath = join(uploadDir, filename);
+          
+          // Collect file buffer
+          const chunks: Buffer[] = [];
+          if (fileData.file) {
+            for await (const chunk of fileData.file) {
+              chunks.push(chunk);
+            }
+          }
+          const buffer = Buffer.concat(chunks);
+          
+          // Check file size (10MB limit)
+          if (buffer.length > 10 * 1024 * 1024) {
+            fastify.log.warn({ size: buffer.length }, "File too large");
+            return reply.code(413).send({
+              error: "Payload Too Large",
+              message: "File exceeds 10MB limit",
+            });
+          }
+          
+          await writeFile(filepath, buffer);
+
+          await db
+            .insert(taskAttachments)
+            .values({
+              taskId: inserted.id,
+              filename,
+              originalName: fileData.filename,
+              mimeType: fileData.mimetype || "application/octet-stream",
+              size: buffer.length,
+              createdBy: user.id,
+              createdAt: now,
+            });
+
+          fastify.log.info({ attachmentTaskId: inserted.id, userId: user.id }, "Attachment created with task");
+        } catch (err) {
+          fastify.log.error({ err }, "Failed to save attachment");
+          // Continue - task was created, attachment failed
+        }
+      }
 
       fastify.log.info({ taskId: inserted.id, userId: user.id }, "Task created");
       return reply.code(201).send(inserted);

@@ -525,6 +525,10 @@ textarea.inline-edit {
   max-width: 360px;
 }
 
+.modal-box.modal-wide {
+  max-width: 480px;
+}
+
 .modal-box h3 {
   font-size: 1.1rem;
   margin-bottom: 1rem;
@@ -542,6 +546,92 @@ textarea.inline-edit {
 .modal-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+/* === Dropzone === */
+.dropzone {
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dropzone:hover {
+  border-color: #1a73e8;
+  background: #f8f9ff;
+}
+
+.dropzone.dragover {
+  border-color: #1a73e8;
+  background: #e8f0fe;
+}
+
+.dropzone-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dropzone-icon {
+  font-size: 1.5rem;
+}
+
+.dropzone-input {
+  display: none;
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f5f5f5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.file-preview.hidden {
+  display: none;
+}
+
+/* === Modal Form === */
+.modal-box label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 0.25rem;
+}
+
+.modal-box input,
+.modal-box textarea {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.modal-box input:focus,
+.modal-box textarea:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
+}
+
+.modal-box textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 /* === Info/Success Messages === */
