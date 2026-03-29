@@ -44,6 +44,8 @@ export function buildServer() {
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB max file size
     },
+    // Don't attach fields to body - we'll use request.parts() manually
+    attachFieldsToBody: false,
   });
 
   // Serve static files from public/ with SPA fallback

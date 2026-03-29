@@ -31,7 +31,7 @@ const paramsSchema = z.object({
 
 export default async function taskRoutes(fastify: FastifyInstance) {
   // All task routes require authentication
-  fastify.addHook("onRequest", fastify.authenticate);
+  fastify.addHook("preParsing", fastify.authenticate);
 
   // GET /api/tasks — list tasks for the authenticated user
   fastify.get("/", async (request, reply) => {
@@ -77,11 +77,6 @@ export default async function taskRoutes(fastify: FastifyInstance) {
   // POST /api/tasks — create a task (with optional attachment via multipart/form-data)
   fastify.post<{ Body: CreateTaskBody }>(
     "/",
-    {
-      schema: {
-        body: createTaskSchema,
-      },
-    },
     async (request, reply) => {
       const user = request.user as { id: number };
 
@@ -96,27 +91,29 @@ export default async function taskRoutes(fastify: FastifyInstance) {
       const contentType = request.headers["content-type"] || "";
       
       if (contentType.includes("multipart/form-data")) {
-        // Parse multipart form data
-        const parts = request.parts() as AsyncGenerator<{ fieldname: string; value: unknown }>;
+        // Parse multipart form data using parts() iterator
+        const parts = request.parts() as AsyncGenerator<{ fieldname: string; value: unknown; type?: string; filename?: string; mimetype?: string; file?: AsyncIterable<Buffer> }>;
         for await (const part of parts) {
-          if (part.fieldname === "title" && typeof part.value === "string") {
-            title = part.value;
-          } else if (part.fieldname === "description" && typeof part.value === "string") {
-            description = part.value || undefined;
-          } else if (part.fieldname === "status" && typeof part.value === "string") {
-            status = part.value as "open" | "done";
-          } else if (part.fieldname === "assignedTo" && typeof part.value === "string") {
-            assignedTo = parseInt(part.value, 10);
-          } else if (part.fieldname === "dueDate" && typeof part.value === "string") {
-            dueDate = part.value || undefined;
-          } else if (part.fieldname === "attachment") {
+          if (part.type === "field") {
+            if (part.fieldname === "title" && typeof part.value === "string") {
+              title = part.value;
+            } else if (part.fieldname === "description" && typeof part.value === "string") {
+              description = part.value || undefined;
+            } else if (part.fieldname === "status" && typeof part.value === "string") {
+              status = part.value === "done" ? "done" : "open";
+            } else if (part.fieldname === "assignedTo" && typeof part.value === "string") {
+              assignedTo = parseInt(part.value, 10);
+            } else if (part.fieldname === "dueDate" && typeof part.value === "string") {
+              dueDate = part.value || undefined;
+            }
+          } else if (part.type === "file") {
             attachmentFile = part;
           }
         }
       } else {
         // Regular JSON request
         const body = request.body as CreateTaskBody;
-        title = body.title;
+        title = body.title || "";
         description = body.description;
         status = body.status ?? "open";
         assignedTo = body.assignedTo;
