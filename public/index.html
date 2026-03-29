@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Early Post Test — Team Task Reminder</title>
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Navigation (hidden until authenticated) -->
+    <nav id="nav" class="nav hidden">
+      <div class="nav-brand">Early Post Test</div>
+      <div class="nav-links">
+        <a href="#/tasks" data-route="tasks">Aufgaben</a>
+        <a href="#/information" data-route="information">Informationen</a>
+        <a href="#/calendar" data-route="calendar">Kalender</a>
+        <a href="#/admin" data-route="admin" class="admin-only hidden">Admin</a>
+        <a href="#/settings" data-route="settings" class="admin-only hidden">Einstellungen</a>
+      </div>
+      <div class="nav-user">
+        <span id="nav-username"></span>
+        <button id="btn-logout" class="btn btn-sm">Abmelden</button>
+      </div>
+    </nav>
+
+    <!-- Setup View (first-run) -->
+    <main id="view-setup" class="view hidden">
+      <div class="auth-container">
+        <h1>Early Post Test</h1>
+        <p class="auth-subtitle">Ersteinrichtung</p>
+
+        <form id="form-setup" class="auth-form">
+          <h2>Admin-Konto erstellen</h2>
+          <div id="setup-error" class="error-msg hidden"></div>
+          <label>
+            Name
+            <input type="text" name="name" required maxlength="100" placeholder="Dein Name" />
+          </label>
+          <label>
+            E-Mail
+            <input type="email" name="email" required placeholder="admin@example.de" />
+          </label>
+
+          <details class="smtp-details">
+            <summary>E-Mail-Server konfigurieren (optional)</summary>
+            <div class="smtp-fields">
+              <label>
+                SMTP Host
+                <input type="text" name="smtp_host" placeholder="smtp.example.de" />
+              </label>
+              <label>
+                Port
+                <input type="number" name="smtp_port" min="0" max="65535" placeholder="587" />
+              </label>
+              <label>
+                Benutzer
+                <input type="text" name="smtp_user" placeholder="user@example.de" />
+              </label>
+              <label>
+                Passwort
+                <input type="password" name="smtp_pass" placeholder="••••••" />
+              </label>
+              <label>
+                Absender
+                <input type="email" name="smtp_from" placeholder="noreply@example.de" />
+              </label>
+            </div>
+          </details>
+
+          <button type="submit" class="btn btn-primary">Einrichtung abschließen</button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Login / Register View -->
+    <main id="view-auth" class="view">
+      <div class="auth-container">
+        <h1>Early Post Test</h1>
+        <p class="auth-subtitle">Team Task Reminder</p>
+
+        <!-- Step 1: Email Input -->
+        <form id="form-code-request" class="auth-form">
+          <h2>Anmelden</h2>
+          <div id="code-request-error" class="error-msg hidden"></div>
+          <div id="code-request-success" class="info-msg hidden"></div>
+          <label>
+            E-Mail
+            <input type="email" name="email" required autocomplete="email" placeholder="deine@email.de" />
+          </label>
+          <button type="submit" class="btn btn-primary">Code senden</button>
+        </form>
+
+        <!-- Step 2: Code Input -->
+        <form id="form-code-verify" class="auth-form hidden">
+          <h2>Code eingeben</h2>
+          <p class="auth-subtitle" style="margin-bottom:1rem;font-size:0.85rem;color:#666;">
+            Wir haben einen 6-stelligen Code an <strong id="verify-email-display"></strong> gesendet.
+          </p>
+          <div id="code-verify-error" class="error-msg hidden"></div>
+          <label>
+            Login-Code
+            <input type="text" name="code" required pattern="\d{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric" placeholder="000000" />
+          </label>
+          <button type="submit" class="btn btn-primary">Anmelden</button>
+          <p class="auth-switch"><a href="#" id="back-to-email">← Andere E-Mail verwenden</a></p>
+        </form>
+      </div>
+    </main>
+
+    <!-- Tasks View -->
+    <main id="view-tasks" class="view hidden">
+      <div class="view-container">
+        <h2>Aufgaben</h2>
+
+        <!-- Inline create -->
+        <form id="task-create-form" class="inline-create-form">
+          <input type="text" id="task-create-title" placeholder="Neue Aufgabe…" maxlength="200" required />
+          <button type="submit" class="btn btn-primary">Erstellen</button>
+        </form>
+        <div id="task-create-error" class="error-msg hidden"></div>
+
+        <!-- Status filter -->
+        <div class="filter-bar">
+          <label>Filter:
+            <select id="task-status-filter">
+              <option value="all">Alle</option>
+              <option value="open">Offen</option>
+              <option value="done">Erledigt</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Task list -->
+        <ul id="task-list" class="task-list"></ul>
+        <p id="task-empty" class="placeholder hidden">Keine Aufgaben vorhanden.</p>
+      </div>
+    </main>
+
+    <!-- Information View -->
+    <main id="view-information" class="view hidden">
+      <div class="view-container">
+        <h2>Informationen</h2>
+
+        <!-- Create form -->
+        <form id="info-create-form" class="info-create-form">
+          <input type="text" id="info-create-title" placeholder="Titel…" maxlength="200" required />
+          <textarea id="info-create-content" placeholder="Inhalt…" maxlength="10000" required rows="3"></textarea>
+          <button type="submit" class="btn btn-primary">Erstellen</button>
+        </form>
+        <div id="info-create-error" class="error-msg hidden"></div>
+
+        <!-- Information list -->
+        <ul id="info-list" class="info-list"></ul>
+        <p id="info-empty" class="placeholder hidden">Keine Informationen vorhanden.</p>
+      </div>
+    </main>
+
+    <!-- Calendar View -->
+    <main id="view-calendar" class="view hidden">
+      <div class="view-container">
+        <div class="calendar-header">
+          <h2 id="calendar-title">Kalender</h2>
+          <div class="calendar-nav">
+            <button id="cal-prev" class="btn btn-sm" title="Vorheriger Monat">&laquo; Zurück</button>
+            <button id="cal-today" class="btn btn-sm">Heute</button>
+            <button id="cal-next" class="btn btn-sm" title="Nächster Monat">Weiter &raquo;</button>
+          </div>
+          <button id="btn-send-email" class="btn btn-primary">E-Mail senden</button>
+        </div>
+        <div id="cal-email-msg" class="hidden"></div>
+        <div class="calendar-grid">
+          <div class="cal-day-header">Mo</div>
+          <div class="cal-day-header">Di</div>
+          <div class="cal-day-header">Mi</div>
+          <div class="cal-day-header">Do</div>
+          <div class="cal-day-header">Fr</div>
+          <div class="cal-day-header">Sa</div>
+          <div class="cal-day-header">So</div>
+        </div>
+        <div id="calendar-body" class="calendar-body"></div>
+      </div>
+      <!-- Duty assignment modal -->
+      <div id="duty-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+          <h3 id="duty-modal-title">Dienst zuweisen</h3>
+          <select id="duty-user-select">
+            <option value="">— Bitte wählen —</option>
+          </select>
+          <div class="modal-actions">
+            <button id="duty-save" class="btn btn-primary">Speichern</button>
+            <button id="duty-remove" class="btn btn-sm btn-danger">Entfernen</button>
+            <button id="duty-cancel" class="btn btn-sm">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Admin View -->
+    <main id="view-admin" class="view hidden">
+      <div class="view-container">
+        <h2>Benutzerverwaltung</h2>
+
+        <!-- Create user form -->
+        <form id="admin-create-form" class="inline-create-form">
+          <input type="email" id="admin-create-email" placeholder="E-Mail…" required />
+          <input type="text" id="admin-create-name" placeholder="Name…" maxlength="100" required />
+          <select id="admin-create-role">
+            <option value="user">Benutzer</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button type="submit" class="btn btn-primary">Erstellen</button>
+        </form>
+        <div id="admin-create-error" class="error-msg hidden"></div>
+
+        <!-- User list -->
+        <ul id="admin-user-list" class="admin-user-list"></ul>
+        <p id="admin-empty" class="placeholder hidden">Keine Benutzer vorhanden.</p>
+      </div>
+    </main>
+
+    <!-- Settings View -->
+    <main id="view-settings" class="view hidden">
+      <div class="view-container">
+        <h2>Einstellungen</h2>
+
+        <form id="settings-smtp-form" class="settings-form">
+          <h3>SMTP-Konfiguration</h3>
+          <div id="settings-smtp-error" class="error-msg hidden"></div>
+          <div id="settings-smtp-success" class="info-msg hidden"></div>
+          <label>
+            SMTP Host
+            <input type="text" name="smtp_host" placeholder="smtp.example.de" required />
+          </label>
+          <label>
+            Port
+            <input type="number" name="smtp_port" min="0" max="65535" placeholder="587" required />
+          </label>
+          <label>
+            Benutzer
+            <input type="text" name="smtp_user" placeholder="user@example.de" />
+          </label>
+          <label>
+            Passwort
+            <input type="password" name="smtp_pass" placeholder="••••••" />
+          </label>
+          <label>
+            Absender
+            <input type="email" name="smtp_from" placeholder="noreply@example.de" required />
+          </label>
+          <button type="submit" class="btn btn-primary">Speichern</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

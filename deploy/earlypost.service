@@ -1,0 +1,30 @@
+[Unit]
+Description=EarlyPost — Team Task Reminder Tool
+After=network.target
+
+[Service]
+Type=simple
+User=earlypost
+Group=earlypost
+WorkingDirectory=/opt/earlypost
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOST=0.0.0.0
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=earlypost
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/earlypost/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
