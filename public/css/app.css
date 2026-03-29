@@ -262,6 +262,21 @@ body {
   font-size: 0.85rem;
 }
 
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
 /* === Task List === */
 .task-list {
   list-style: none;
@@ -301,6 +316,23 @@ body {
 .task-title {
   flex: 1;
   font-size: 0.95rem;
+}
+
+.task-due-date {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  margin-right: 0.5rem;
+}
+
+.task-due-date.overdue {
+  color: #c5221f;
+  font-weight: 600;
+}
+
+.task-due-date.due-soon {
+  color: #f9a825;
+  font-weight: 500;
 }
 
 .btn-danger {

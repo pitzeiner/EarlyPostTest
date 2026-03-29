@@ -271,7 +271,7 @@
   }
 
   // ---- Task Modal & CRUD ----
-  let taskFilter = "all";
+  let showCompleted = false; // Default: hide completed tasks
   let taskModalFile = null;
 
   function openTaskModal() {
@@ -289,7 +289,7 @@
 
   function initTaskView() {
     const errorEl = document.getElementById("task-create-error");
-    const filter = document.getElementById("task-status-filter");
+    const showCompletedCheckbox = document.getElementById("task-show-completed");
 
     // New task button opens modal
     document.getElementById("btn-new-task").addEventListener("click", openTaskModal);
@@ -381,8 +381,9 @@
       }
     });
 
-    filter.addEventListener("change", () => {
-      taskFilter = filter.value;
+    // Toggle show completed tasks
+    showCompletedCheckbox.addEventListener("change", () => {
+      showCompleted = showCompletedCheckbox.checked;
       loadTasks();
     });
   }
@@ -410,14 +411,28 @@
 
     try {
       const tasks = await api.get("/api/tasks");
-      const filtered =
-        taskFilter === "all" ? tasks : tasks.filter((t) => t.status === taskFilter);
+      
+      // Filter: hide completed by default (unless checkbox is checked)
+      const filtered = showCompleted ? tasks : tasks.filter((t) => t.status !== "done");
 
-      if (filtered.length === 0) {
+      // Sort: open tasks first, then by dueDate (ascending)
+      const sorted = filtered.sort((a, b) => {
+        // Open tasks first
+        if (a.status === "done" && b.status !== "done") return 1;
+        if (a.status !== "done" && b.status === "done") return -1;
+        
+        // Within same status, sort by dueDate (earliest first, null dates at end)
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+
+      if (sorted.length === 0) {
         empty.classList.remove("hidden");
       } else {
         empty.classList.add("hidden");
-        filtered.forEach((task) => list.appendChild(renderTaskItem(task)));
+        sorted.forEach((task) => list.appendChild(renderTaskItem(task)));
       }
     } catch (err) {
       empty.textContent = "Fehler beim Laden der Aufgaben.";
@@ -443,6 +458,29 @@
     titleSpan.textContent = task.title;
     titleSpan.addEventListener("dblclick", () => startEditTaskTitle(li, task));
 
+    // Due date display
+    const dueDateSpan = document.createElement("span");
+    dueDateSpan.className = "task-due-date";
+    if (task.dueDate) {
+      const due = new Date(task.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      due.setHours(0, 0, 0, 0);
+      
+      const formatted = due.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      dueDateSpan.textContent = "📅 " + formatted;
+      
+      // Add visual indicator for overdue or due soon
+      if (task.status !== "done") {
+        const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) {
+          dueDateSpan.classList.add("overdue");
+        } else if (diffDays <= 2) {
+          dueDateSpan.classList.add("due-soon");
+        }
+      }
+    }
+
     // Delete button
     const del = document.createElement("button");
     del.className = "btn btn-sm btn-danger";
@@ -451,6 +489,7 @@
 
     li.appendChild(toggle);
     li.appendChild(titleSpan);
+    li.appendChild(dueDateSpan);
     li.appendChild(del);
     return li;
   }
